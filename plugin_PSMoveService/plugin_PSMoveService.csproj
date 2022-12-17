@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <TargetPlatformVersion>10.0.22621.0</TargetPlatformVersion>
+    <TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
+    <RootNamespace>plugin_PSMoveService</RootNamespace>
+    <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+    <PublishTrimmed>true</PublishTrimmed>
+    <Platforms>x64</Platforms>
+    <UseWinUI>true</UseWinUI>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../vendor/PSMS/PSMoveServiceExCAPI/PSMoveServiceExCAPI.vbproj" />
+    <PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.7" />
+    <PackageReference Include="System.ComponentModel.Composition" Version="7.0.0" />
+    <PackageReference Include="System.ComponentModel.Composition.Registration" Version="7.0.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.2.221209.1" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.25247-preview" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

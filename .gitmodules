@@ -1,0 +1,3 @@
+[submodule "vendor/PSMS"]
+	path = vendor/PSMS
+	url = https://github.com/Timocop/PSMoveServiceEx-CAPI.NET

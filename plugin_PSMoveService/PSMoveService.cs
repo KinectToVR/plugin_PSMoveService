@@ -70,7 +70,7 @@ public class PsMoveService : ITrackingDevice
         {
             OnContent = "", OffContent = "",
             IsOn = Host.PluginSettings.GetSetting("LedDim", false),
-            Margin = new Thickness { Left = 5, Top = 5, Right = 5, Bottom = 3 },
+            Margin = new Thickness { Left = 5, Top = 3, Right = 3, Bottom = 3 },
             VerticalAlignment = VerticalAlignment.Center
         };
 
@@ -83,8 +83,8 @@ public class PsMoveService : ITrackingDevice
         LedHeaderTextBlock = new TextBlock
         {
             Text = Host.RequestLocalizedString("/Plugins/PSMS/Settings/Contents/Dim"),
-            Margin = new Thickness { Left = 3, Top = 3, Right = 5, Bottom = 3 },
-            VerticalAlignment = VerticalAlignment.Center
+            Margin = new Thickness { Left = 3, Top = 5, Right = 5, Bottom = 3 },
+            VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.WrapWholeWords
         };
 
         LedTextBlock = new TextBlock
@@ -119,9 +119,14 @@ public class PsMoveService : ITrackingDevice
         // Try connecting to the service
         try
         {
+            // Initialize the API
             if (!Service.IsConnected())
                 Service.Connect();
 
+            // Rebuild controllers
+            RefreshControllerList();
+
+            // Re-compute the status
             DeviceStatus = IsInitialized
                 ? Service.IsConnected()
                     ? TrackedJoints.First().Name != "INVALID"
@@ -130,8 +135,8 @@ public class PsMoveService : ITrackingDevice
                     : 2 // Not even connected
                 : 3; // Not initialized (yet?)
 
-            // Rebuild controllers
-            RefreshControllerList();
+            // Refresh inside amethyst
+            Host?.RefreshStatusInterface();
         }
         catch (Exception e)
         {
@@ -141,10 +146,23 @@ public class PsMoveService : ITrackingDevice
 
     public void Shutdown()
     {
-        // Try connecting to the service
+        // Try disconnection from the service
         try
         {
+            // Shutdown the API
             Service.Disconnect();
+
+            // Re-compute the status
+            DeviceStatus = IsInitialized
+                ? Service.IsConnected()
+                    ? TrackedJoints.First().Name != "INVALID"
+                        ? 0 // Everything's fine!
+                        : 1 // Connected, no joints
+                    : 2 // Not even connected
+                : 3; // Not initialized (yet?)
+
+            // Refresh inside amethyst
+            Host?.RefreshStatusInterface();
         }
         catch (Exception e)
         {

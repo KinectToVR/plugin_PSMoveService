@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../vendor/PSMS/PSMoveServiceExCAPI/PSMoveServiceExCAPI.vbproj" />
-    <PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.9" />
+    <PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.10" />
     <PackageReference Include="System.ComponentModel.Composition" Version="7.0.0" />
     <PackageReference Include="System.ComponentModel.Composition.Registration" Version="7.0.0" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.2.221209.1" />

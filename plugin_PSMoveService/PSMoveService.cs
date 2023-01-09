@@ -2,13 +2,11 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
-using System.Threading;
 using System.Threading.Tasks;
 using Amethyst.Plugins.Contract;
 using Microsoft.UI.Xaml;
@@ -28,7 +26,7 @@ namespace plugin_PSMoveService;
 public class PsMoveService : ITrackingDevice
 {
     [Import(typeof(IAmethystHost))] private IAmethystHost Host { get; set; }
-    private Service Service { get; set; } = new("127.0.0.1");
+    private Service Service { get; } = new("127.0.0.1");
 
     private bool PluginLoaded { get; set; }
     private Page InterfaceRoot { get; set; }
@@ -45,10 +43,10 @@ public class PsMoveService : ITrackingDevice
     public object SettingsInterfaceRoot => InterfaceRoot;
 
     public bool IsInitialized => Service.IsInitialized();
-    public bool IsSkeletonTracked { get; private set; } = false;
+    public bool IsSkeletonTracked { get; private set; }
     public int DeviceStatus { get; private set; } = 3;
 
-    public ObservableCollection<TrackedJoint> TrackedJoints { get; private set; } = new()
+    public ObservableCollection<TrackedJoint> TrackedJoints { get; } = new()
     {
         new TrackedJoint { Name = "INVALID", Role = TrackedJointType.JointManual }
     };
@@ -63,6 +61,8 @@ public class PsMoveService : ITrackingDevice
             _ => $"Undefined: {DeviceStatus}\nE_UNDEFINED\nSomething weird has happened, though we can't tell what."
         }
         : $"Undefined: {DeviceStatus}\nE_UNDEFINED\nSomething weird has happened, though we can't tell what.";
+
+    public Uri ErrorDocsUri => new($"https://docs.k2vr.tech/{Host?.DocsLanguageCode ?? "en"}/psmove/troubleshooting/");
 
     public void OnLoad()
     {

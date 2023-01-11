@@ -78,6 +78,7 @@ public class PsMoveService : ITrackingDevice
         {
             DimControllers((sender as ToggleSwitch)?.IsOn ?? false); // Try to dim the controller
             Host.PluginSettings.SetSetting("LedDim", (sender as ToggleSwitch)?.IsOn ?? false);
+            Host.PlayAppSound((sender as ToggleSwitch)?.IsOn ?? false ? SoundType.ToggleOn : SoundType.ToggleOff);
         };
 
         LedHeaderTextBlock = new TextBlock

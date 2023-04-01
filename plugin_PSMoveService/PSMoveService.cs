@@ -23,6 +23,7 @@ namespace plugin_PSMoveService;
 [ExportMetadata("Name", "PSMove Service")]
 [ExportMetadata("Guid", "K2VRTEAM-AME2-APII-DVCE-DVCEPSMOVEEX")]
 [ExportMetadata("Publisher", "K2VR Team")]
+[ExportMetadata("Version", "1.0.0.0")]
 [ExportMetadata("Website", "https://github.com/KinectToVR/plugin_PSMoveService")]
 public class PsMoveService : ITrackingDevice
 {

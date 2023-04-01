@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0.0",
+  "display_name": "PSMove Service",
+  "download":  "plugin_PSMoveService.zip",
+  "changelog": "Better controller rumble request handling.",
+  "guid": "K2VRTEAM-AME2-APII-DVCE-DVCEPSMOVEEX"
+}

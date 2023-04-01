@@ -37,4 +37,6 @@ jobs:
           automatic_release_tag: "latest"
           prerelease: true
           title: "plugin_PSMoveService Build Artifact"
-          files: "plugin_PSMoveService/bin/Release/net7.0/win10-x64/publish/plugin_PSMoveService.zip"
+          files: |
+            ./plugin_PSMoveService/bin/Release/net7.0/win10-x64/publish/plugin_PSMoveService.zip
+            ./external/manifest.json

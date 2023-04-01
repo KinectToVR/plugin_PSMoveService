@@ -242,18 +242,15 @@ public class PsMoveService : ITrackingDevice
         {
             try
             {
-                // Search for the controller
-                var controller = PsControllers.ElementAt(jointId);
-
                 // Try setting controller rumble
-                controller?.SetControllerRumble(Constants.PSMControllerRumbleChannel
-                    .PSMControllerRumbleChannel_All, 1f);
+                PsControllers.ElementAt(jointId).SetControllerRumble(
+                    Constants.PSMControllerRumbleChannel.PSMControllerRumbleChannel_All, 1f);
 
                 Task.Delay(100); // Sleep a bit
 
                 // Try resetting controller rumble
-                controller?.SetControllerRumble(Constants.PSMControllerRumbleChannel
-                    .PSMControllerRumbleChannel_All, 0f);
+                PsControllers.ElementAt(jointId).SetControllerRumble(
+                    Constants.PSMControllerRumbleChannel.PSMControllerRumbleChannel_All, 0f);
             }
             catch (Exception e)
             {

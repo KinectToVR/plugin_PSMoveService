@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.Drawing;
@@ -33,6 +34,7 @@ public class PsMoveService : ITrackingDevice
     private ToggleSwitch LedToggleSwitch { get; set; }
     private TextBlock LedTextBlock { get; set; }
     private TextBlock LedHeaderTextBlock { get; set; }
+    private List<Controllers> PsControllers { get; set; } = new();
 
     public bool IsPositionFilterBlockingEnabled => false;
     public bool IsPhysicsOverrideEnabled => true;
@@ -122,7 +124,10 @@ public class PsMoveService : ITrackingDevice
         {
             // Initialize the API
             if (!Service.IsConnected())
+            {
+                Service.Disconnect();
                 Service.Connect();
+            }
 
             // Rebuild controllers
             RefreshControllerList();
@@ -150,8 +155,14 @@ public class PsMoveService : ITrackingDevice
         // Try disconnection from the service
         try
         {
-            // Shutdown the API
-            Service.Disconnect();
+            lock (Host!.UpdateThreadLock)
+            {
+                // Close streams
+                PsControllers.ForEach(x => x?.Disconnect());
+
+                // Shutdown the API
+                Service.Disconnect();
+            }
 
             // Re-compute the status
             DeviceStatus = IsInitialized
@@ -187,34 +198,33 @@ public class PsMoveService : ITrackingDevice
 
             // Refresh all controllers/all
             using var jointEnumerator = TrackedJoints.GetEnumerator();
-            Controllers.GetControllerList()?.ToList()
-                .ForEach(controller =>
-                {
-                    // Refresh the controller
-                    controller.Refresh(Controllers.Info.RefreshFlags.RefreshType_All);
+            PsControllers.ForEach(controller =>
+            {
+                // Refresh the controller
+                controller.Refresh(Controllers.Info.RefreshFlags.RefreshType_All);
 
-                    // Ove to the next controller list entry
-                    if (!jointEnumerator.MoveNext() ||
-                        jointEnumerator.Current is null) return;
+                // Ove to the next controller list entry
+                if (!jointEnumerator.MoveNext() ||
+                    jointEnumerator.Current is null) return;
 
-                    // Note we're all fine
-                    IsSkeletonTracked = true;
+                // Note we're all fine
+                IsSkeletonTracked = true;
 
-                    // Copy pose data from the controller
-                    jointEnumerator.Current.Position = controller.PoseVector();
-                    jointEnumerator.Current.Orientation = controller.OrientationQuaternion();
+                // Copy pose data from the controller
+                jointEnumerator.Current.Position = controller.PoseVector();
+                jointEnumerator.Current.Orientation = controller.OrientationQuaternion();
 
-                    // Copy physics data from the controller
-                    jointEnumerator.Current.Velocity = controller.PoseVelocity();
-                    jointEnumerator.Current.Acceleration = controller.PoseAcceleration();
-                    jointEnumerator.Current.AngularVelocity = controller.PoseAngularVelocity();
-                    jointEnumerator.Current.AngularAcceleration = controller.PoseAngularAcceleration();
+                //// Copy physics data from the controller
+                //jointEnumerator.Current.Velocity = controller.PoseVelocity();
+                //jointEnumerator.Current.Acceleration = controller.PoseAcceleration();
+                //jointEnumerator.Current.AngularVelocity = controller.PoseAngularVelocity();
+                //jointEnumerator.Current.AngularAcceleration = controller.PoseAngularAcceleration();
 
-                    // Parse/copy the tracking state
-                    jointEnumerator.Current.TrackingState = controller.IsControllerStable()
-                        ? TrackedJointState.StateTracked // Tracking is all fine!
-                        : TrackedJointState.StateInferred; // Kinda unstable...?
-                });
+                // Parse/copy the tracking state
+                jointEnumerator.Current.TrackingState = controller.IsControllerStable()
+                    ? TrackedJointState.StateTracked // Tracking is all fine!
+                    : TrackedJointState.StateInferred; // Kinda unstable...?
+            });
         }
         catch (Exception e)
         {
@@ -232,17 +242,18 @@ public class PsMoveService : ITrackingDevice
         {
             try
             {
+                // Search for the controller
+                var controller = PsControllers.ElementAt(jointId);
+
                 // Try setting controller rumble
-                Controllers.GetControllerList()?[jointId]
-                    .SetControllerRumble(Constants.PSMControllerRumbleChannel
-                        .PSMControllerRumbleChannel_All, 1f);
+                controller?.SetControllerRumble(Constants.PSMControllerRumbleChannel
+                    .PSMControllerRumbleChannel_All, 1f);
 
                 Task.Delay(100); // Sleep a bit
 
                 // Try resetting controller rumble
-                Controllers.GetControllerList()?[jointId]
-                    .SetControllerRumble(Constants.PSMControllerRumbleChannel
-                        .PSMControllerRumbleChannel_All, 0f);
+                controller?.SetControllerRumble(Constants.PSMControllerRumbleChannel
+                    .PSMControllerRumbleChannel_All, 0f);
             }
             catch (Exception e)
             {
@@ -262,9 +273,8 @@ public class PsMoveService : ITrackingDevice
             try
             {
                 // Try setting controller rumble
-                Controllers.GetControllerList()?.ToList()
-                    .ForEach(x => x.SetControllerLEDOverrideColor(
-                        enabled ? Color.FromArgb(1, 1, 1) : Color.FromArgb(0, 0, 0)));
+                PsControllers.ForEach(x => x.SetControllerLEDOverrideColor(
+                    enabled ? Color.FromArgb(1, 1, 1) : Color.FromArgb(0, 0, 0)));
             }
             catch (Exception e)
             {
@@ -284,9 +294,12 @@ public class PsMoveService : ITrackingDevice
                 Host?.Log("Emptying the tracked joints list...");
                 TrackedJoints.Clear(); // Delete literally everything
 
+                Host?.Log("Closing all controller streams...");
+                PsControllers.ForEach(x => x?.Disconnect());
+
                 Host?.Log("Searching for tracked controllers...");
-                var controllers = Controllers.GetControllerList();
-                if (controllers is null)
+                PsControllers = Controllers.GetControllerList().ToList();
+                if (!PsControllers.Any())
                 {
                     Host?.Log("Didn't find any valid controllers within the PSM Service!");
                     TrackedJoints.Add(new TrackedJoint
@@ -297,11 +310,11 @@ public class PsMoveService : ITrackingDevice
                 }
 
                 // Add all the available PSMoves
-                foreach (var controller in controllers)
+                foreach (var controller in PsControllers)
                 {
                     Host?.Log($"Found a valid, usable controller: {controller}");
-                    Host?.Log("Setting up controller streams...");
 
+                    Host?.Log("Setting up controller streams...");
                     controller.m_DataStreamFlags =
                         Constants.PSMStreamFlags.PSMStreamFlags_includeCalibratedSensorData |
                         Constants.PSMStreamFlags.PSMStreamFlags_includePhysicsData |
@@ -316,7 +329,7 @@ public class PsMoveService : ITrackingDevice
                     Host?.Log("Adding the new controller to the controller list...");
                     TrackedJoints.Add(new TrackedJoint
                     {
-                        Name = controller.m_Info.m_ControllerSerial,
+                        Name = $"{controller.m_Info.m_ControllerSerial} {controller.m_Info.m_ControllerId}",
                         Role = TrackedJointType.JointManual
                     });
                 }

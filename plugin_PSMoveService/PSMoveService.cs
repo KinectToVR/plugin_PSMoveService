@@ -23,7 +23,7 @@ namespace plugin_PSMoveService;
 [ExportMetadata("Name", "PSMove Service")]
 [ExportMetadata("Guid", "K2VRTEAM-AME2-APII-DVCE-DVCEPSMOVEEX")]
 [ExportMetadata("Publisher", "K2VR Team")]
-[ExportMetadata("Version", "1.0.0.0")]
+[ExportMetadata("Version", "1.0.0.1")]
 [ExportMetadata("Website", "https://github.com/KinectToVR/plugin_PSMoveService")]
 public class PsMoveService : ITrackingDevice
 {
@@ -393,9 +393,9 @@ public static class DataExtensions
     {
         return controller.m_Info.IsPoseValid()
             ? new Vector3(
-                controller.m_Info.m_Pose.m_Position.x,
-                controller.m_Info.m_Pose.m_Position.y,
-                controller.m_Info.m_Pose.m_Position.z)
+                controller.m_Info.m_Pose.m_Position.x / 100f,
+                controller.m_Info.m_Pose.m_Position.y / 100f,
+                controller.m_Info.m_Pose.m_Position.z / 100f)
             : Vector3.Zero; // Nothing if invalid
     }
 

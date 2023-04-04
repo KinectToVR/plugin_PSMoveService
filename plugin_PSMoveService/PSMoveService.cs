@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -36,6 +37,9 @@ public class PsMoveService : ITrackingDevice
     private TextBlock LedTextBlock { get; set; }
     private TextBlock LedHeaderTextBlock { get; set; }
     private List<Controllers> PsControllers { get; set; } = new();
+
+    public DirectoryInfo ConfigFolder => new(Path.Join(Environment.GetFolderPath(
+        Environment.SpecialFolder.ApplicationData), "PSMoveService"));
 
     public bool IsPositionFilterBlockingEnabled => false;
     public bool IsPhysicsOverrideEnabled => true;
@@ -69,6 +73,34 @@ public class PsMoveService : ITrackingDevice
 
     public void OnLoad()
     {
+        try
+        {
+            // Prepare joint placeholders if this is the 1st time loading
+            if (!PluginLoaded && ConfigFolder.Exists)
+                lock (Host.UpdateThreadLock)
+                {
+                    TrackedJoints.Clear(); // Clear the list to make some space
+
+                    // Add all valid PSMoves present in the configuration directory
+                    TrackedJoints.AddRange(ConfigFolder.EnumerateFiles("??_??_??_??_??_??.json")
+                        .Select(x => new TrackedJoint
+                            { Name = Path.GetFileNameWithoutExtension(x.Name), Role = TrackedJointType.JointManual }));
+
+                    // Add all valid Virtual-s present in the configuration directory
+                    TrackedJoints.AddRange(ConfigFolder.EnumerateFiles("VirtualController_*.json")
+                        .Select(x => new TrackedJoint
+                            { Name = Path.GetFileNameWithoutExtension(x.Name), Role = TrackedJointType.JointManual }));
+                }
+        }
+        catch (Exception e)
+        {
+            Host?.Log($"Error appending default joints! Message: {e.Message}", LogSeverity.Error);
+        }
+
+        if (!PluginLoaded && !TrackedJoints.Any()) // Append a placeholder joint if still empty
+            TrackedJoints.Add(new TrackedJoint { Name = "INVALID", Role = TrackedJointType.JointManual });
+
+        // Prepare the settings interface
         LedToggleSwitch = new ToggleSwitch
         {
             OnContent = "", OffContent = "",
@@ -230,6 +262,19 @@ public class PsMoveService : ITrackingDevice
         catch (Exception e)
         {
             Host?.Log($"Couldn't update PSM Service! {e.Message}");
+            Host?.Log("Checking the service status again...");
+
+            // Re-compute the status
+            DeviceStatus = IsInitialized
+                ? Service.IsConnected()
+                    ? TrackedJoints.First().Name != "INVALID"
+                        ? 0 // Everything's fine!
+                        : 1 // Connected, no joints
+                    : 2 // Not even connected
+                : 3; // Not initialized (yet?)
+
+            // Request a quick refresh of the status
+            Host?.RefreshStatusInterface();
         }
     }
 
@@ -327,7 +372,11 @@ public class PsMoveService : ITrackingDevice
                     Host?.Log("Adding the new controller to the controller list...");
                     TrackedJoints.Add(new TrackedJoint
                     {
-                        Name = $"{controller.m_Info.m_ControllerSerial} {controller.m_Info.m_ControllerId}",
+                        Name = $"{controller.m_Info.m_ControllerSerial}" +
+                               (controller.m_Info.m_ControllerType is Constants.PSMControllerType.PSMController_Virtual
+                                   ? controller.m_Info
+                                       .m_ControllerId // Is the controller is virtual, also append its ID
+                                   : ""), // If this controller is valid, its serial should be the bluetooth-mac address
                         Role = TrackedJointType.JointManual
                     });
                 }
@@ -408,5 +457,10 @@ public static class DataExtensions
                 controller.m_Info.m_Pose.m_Orientation.z,
                 controller.m_Info.m_Pose.m_Orientation.w)
             : Quaternion.Identity; // Nothing if invalid
+    }
+
+    public static void AddRange<T>(this ObservableCollection<T> collection, IEnumerable<T> items)
+    {
+        items.ToList().ForEach(collection.Add);
     }
 }

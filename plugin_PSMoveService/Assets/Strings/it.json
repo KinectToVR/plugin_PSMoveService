@@ -1,0 +1,29 @@
+{
+  "language": "it",
+  "messages": [
+    {
+      "id": "/Plugins/PSMS/Statuses/Success",
+      "translation": "Successo!\nS_OK\nVa tutto bene!"
+    },
+    {
+      "id": "/Plugins/PSMS/Statuses/NotConnected",
+      "translation": "Errore connessione client!\nE_PSMS_NOT_CONNECTED\nControllare se PSMoveService sia in esecuzione, funzionante ed accessibile dai client."
+    },
+    {
+      "id": "/Plugins/PSMS/Statuses/NotRunning",
+      "translation": "Errore connessione API!\nE_PSMS_NOT_INITIALIZED\nControllare se PSMoveService sia in esecuzione, funzionante ed accessibile dai client."
+    },
+    {
+      "id": "/Plugins/PSMS/Statuses/NoJoints",
+      "translation": "Nessun controller trovato!\nE_PSMS_NO_JOINTS\nControllare se almeno un controller sia connesso e se PSMoveService stia funzionando correttamente."
+    },
+    {
+      "id": "/Plugins/PSMS/Settings/Contents/Dim",
+      "translation": "Se stai usando PSMS solo per la rotazione puoi ridurre la luminosità dei controller per risparmiare energia."
+    },
+    {
+      "id": "/Plugins/PSMS/Settings/Labels/Dim",
+      "translation": "Riduci luminosità luci PSMS:"
+    }
+  ]
+}

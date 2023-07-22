@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Amethyst.Plugins.Contract;
 using Microsoft.UI.Xaml.Controls;
 using System.IO;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using RestSharp;
@@ -13,16 +12,17 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Diagnostics;
+using Microsoft.UI.Xaml.Markup;
+using Microsoft.UI.Xaml.Media;
 
 namespace plugin_PSMoveService;
 
 internal class SetupData : ICoreSetupData
 {
-    public object PluginIcon => new BitmapIcon
+    public object PluginIcon => new PathIcon
     {
-        UriSource = new Uri(Path.Join(Directory.GetParent(
-                Assembly.GetExecutingAssembly().Location)!.FullName,
-            "Assets", "Resources", "icon.png"))
+        Data = (Geometry)XamlBindingHelper.ConvertValue(typeof(Geometry),
+            "M55.38,5.07c.07-1.44-.75-1.95-1.94-1.95-7.67,0-15.33,0-23,0H30a1.36,1.36,0,0,0-1.43,1.4q0,2.43,0,4.86a1.38,1.38,0,0,0,1.54,1.45h6.7c-.59,2.69-.13,4.62,1.6,6a2,2,0,0,1,.88,2,1.61,1.61,0,0,0,0,.38c.09.53-.17.64-.66.63-1.54,0-3.09,0-4.64,0-.55,0-.8.11-.75.72a19.78,19.78,0,0,1,0,2.31c0,.5.12.66.64.65,2.09,0,4.18,0,6.27,0,3.3,0,6.6,0,9.91,0,.53,0,.8-.08.76-.7a19.78,19.78,0,0,1,0-2.31c0-.5-.14-.68-.66-.67-1.26,0-2.53,0-3.79,0-1.71,0-1.7,0-1.71-1.67a1.12,1.12,0,0,1,.52-1,5,5,0,0,0,2.17-3.75,22.62,22.62,0,0,0-.09-2.57h6.51a1.43,1.43,0,0,0,1.62-1.61C55.37,7.85,55.3,6.46,55.38,5.07ZM42,15.79a3,3,0,1,1,2.93-3A3.08,3.08,0,0,1,42,15.79ZM19.53,1.14C17.3,1,15.92,2.51,15.64,5.43a3.11,3.11,0,0,1-.25-.2c-.71-.65-.7-.64-1.31.1-.86,1-1.69,2.07-2.59,3.06a83.16,83.16,0,0,1-9.78,9.08,3.61,3.61,0,0,0-1.4,3.76,3.71,3.71,0,0,0,2.82,3c1.59.43,3.09-.25,4.26-1.8A78.23,78.23,0,0,1,18.82,10c.76-.65.76-.65.07-1.37,0,0,0-.12-.05-.19C21.35,8.38,23,7,23,4.8A3.66,3.66,0,0,0,19.53,1.14Zm-8.76,13.3a1,1,0,1,1,1.06-1A1,1,0,0,1,10.77,14.44Zm2.68-2.67a1.23,1.23,0,0,1-.87-.47,1.19,1.19,0,0,1,.06-1.06,9.6,9.6,0,0,1,1.6-1.65,1.15,1.15,0,0,1,1-.08c.28.11.44.49.55.63C15.79,9.94,14.06,11.82,13.45,11.77Z")
     };
 
     public string GroupName => string.Empty;
@@ -242,8 +242,10 @@ internal class VdManager : IDependency
                 }
 
                 // Set up settings
-                var vdmConfigPath = Path.GetFullPath(Path.Combine(outputDirectory, "PSMSVirtualDeviceManager", "settings.ini"));
-                var psmsPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "Vendor", "PSMoveService", "PSMoveService.exe");
+                var vdmConfigPath =
+                    Path.GetFullPath(Path.Combine(outputDirectory, "PSMSVirtualDeviceManager", "settings.ini"));
+                var psmsPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "Vendor", "PSMoveService",
+                    "PSMoveService.exe");
                 if (!File.Exists(vdmConfigPath) && File.Exists(psmsPath))
                 {
                     var contents = $"[Settings]\r\nPSMoveServiceLocation={psmsPath}";

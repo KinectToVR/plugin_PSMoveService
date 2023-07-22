@@ -26,6 +26,9 @@ namespace plugin_PSMoveService;
 [ExportMetadata("Publisher", "K2VR Team")]
 [ExportMetadata("Version", "1.0.0.1")]
 [ExportMetadata("Website", "https://github.com/KinectToVR/plugin_PSMoveService")]
+[ExportMetadata("DependencyLink", "https://github.com/Timocop/PSMoveServiceEx/releases")]
+[ExportMetadata("DependencyInstaller", typeof(CoreInstaller))]
+[ExportMetadata("CoreSetupData", typeof(SetupData))]
 public class PsMoveService : ITrackingDevice
 {
     [Import(typeof(IAmethystHost))] private IAmethystHost Host { get; set; }

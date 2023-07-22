@@ -24,6 +24,66 @@
     {
       "id": "/Plugins/PSMS/Settings/Labels/Dim",
       "translation": "Réduire l'intensité des DELs:"
+    },
+    {
+      "id": "/Plugins/Kinect360/Dependencies/Eye/Name",
+      "translation": "PSEye Drivers"
+    },
+    {
+      "id": "/Plugins/Kinect360/Dependencies/PSMS/Name",
+      "translation": "PSMoveService"
+    },
+    {
+      "id": "/Plugins/Kinect360/Dependencies/VDM/Name",
+      "translation": "Virtual Device Manager"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Downloading/Service",
+      "translation": "Downloading PSMove Service"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Exceptions/Service/Extraction",
+      "translation": "PSMove Service extraction failed! Exception: {0}"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Exceptions/Service/Installation",
+      "translation": "PSMove Service installation failed! Exception: {0}"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Downloading/VDM",
+      "translation": "Downloading PSMS-VDManager"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Exceptions/VDM/Extraction",
+      "translation": "PSMS-VDM extraction failed! Exception: {0}"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Exceptions/VDM/Installation",
+      "translation": "PSMS-VDM installation failed! Exception: {0}"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Downloading/Eye",
+      "translation": "Downloading PSEye Drivers"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Exceptions/Eye/Extraction",
+      "translation": "Archive extraction failed! Exception: {0}"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Installing/Eye",
+      "translation": "Setting up PSEye Drivers"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Installation/Eye/Success",
+      "translation": "PSEye Drivers installed successfully!"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Installation/Eye/Fail",
+      "translation": "PSEye Drivers installation failed! Exit code: {0}"
+    },
+    {
+      "id": "/Plugins/PSMS/Stages/Exceptions/Service/Installation",
+      "translation": "PSEye Drivers installation failed! Exception: {0}"
     }
   ]
 }

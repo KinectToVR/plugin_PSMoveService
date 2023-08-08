@@ -28,6 +28,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Assets\Resources\" />
+    <Folder Include="Assets\Resources\Dependencies\" />
   </ItemGroup>
 </Project>

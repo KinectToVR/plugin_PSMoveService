@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Diagnostics;
+using System.Reflection;
 using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
 
@@ -63,17 +64,6 @@ internal class PsmService : IDependency
 {
     public IDependencyInstaller.ILocalizationHost Host { get; set; }
 
-    private const string DownloadUrl =
-        "https://github.com/Timocop/PSMoveServiceEx/releases/download/v0.21/PSMoveService.zip";
-
-    private string TemporaryFolderName { get; } = Guid.NewGuid().ToString().ToUpper();
-
-    private async Task<StorageFolder> GetTempDirectory()
-    {
-        return await ApplicationData.Current.TemporaryFolder.CreateFolderAsync(
-            TemporaryFolderName, CreationCollisionOption.OpenIfExists);
-    }
-
     public async Task<bool> Install(IProgress<InstallationProgress> progress, CancellationToken cancellationToken)
     {
         // Amethyst will handle this exception for us anyway
@@ -81,40 +71,9 @@ internal class PsmService : IDependency
 
         try
         {
-            using var client = new RestClient();
-            progress.Report(new InstallationProgress
-            {
-                IsIndeterminate = true,
-                StageTitle = Host?.RequestLocalizedString("/Plugins/PSMS/Stages/Downloading/Service") ??
-                             "Downloading PSMove Service"
-            });
+            var sourceZip = Path.Join(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.FullName,
+                "Assets", "Resources", "Dependencies", "PSMoveService.zip");
 
-            // Create a stream reader using the received Installer Uri
-            await using var stream =
-                await client.ExecuteDownloadStreamAsync(DownloadUrl, new RestRequest());
-
-            // Replace or create our installer file
-            var installerFile = await (await GetTempDirectory()).CreateFileAsync(
-                "PSMoveService-latest.zip", CreationCollisionOption.ReplaceExisting);
-
-            // Create an output stream and push all the available data to it
-            await using var fsInstallerFile = await installerFile.OpenStreamForWriteAsync();
-            await stream.CopyToWithProgressAsync(fsInstallerFile, cancellationToken,
-                innerProgress =>
-                {
-                    progress.Report(new InstallationProgress
-                    {
-                        IsIndeterminate = false,
-                        OverallProgress = innerProgress / 18942046.0,
-                        StageTitle = Host?.RequestLocalizedString("/Plugins/PSMS/Stages/Downloading/Service") ??
-                                     "Downloading PSMove Service"
-                    });
-                }); // The runtime will do the rest for us
-
-            // Close the file to unlock it
-            fsInstallerFile.Close();
-
-            var sourceZip = Path.GetFullPath(Path.Combine((await GetTempDirectory()).Path, "PSMoveService-latest.zip"));
             var outputDirectory = (await ApplicationData.Current.LocalFolder.CreateFolderAsync(
                 "Vendor", CreationCollisionOption.OpenIfExists)).Path;
 
@@ -183,41 +142,9 @@ internal class VdManager : IDependency
 
         try
         {
-            using var client = new RestClient();
-            progress.Report(new InstallationProgress
-            {
-                IsIndeterminate = true,
-                StageTitle = Host?.RequestLocalizedString("/Plugins/PSMS/Stages/Downloading/VDM") ??
-                             "Downloading PSMS-VDManager"
-            });
+            var sourceZip = Path.Join(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.FullName,
+                "Assets", "Resources", "Dependencies", "PSMSVirtualDeviceManager.zip");
 
-            // Create a stream reader using the received Installer Uri
-            await using var stream =
-                await client.ExecuteDownloadStreamAsync(DownloadUrl, new RestRequest());
-
-            // Replace or create our installer file
-            var installerFile = await (await GetTempDirectory()).CreateFileAsync(
-                "PSMSVirtualDeviceManager.zip", CreationCollisionOption.ReplaceExisting);
-
-            // Create an output stream and push all the available data to it
-            await using var fsInstallerFile = await installerFile.OpenStreamForWriteAsync();
-            await stream.CopyToWithProgressAsync(fsInstallerFile, cancellationToken,
-                innerProgress =>
-                {
-                    progress.Report(new InstallationProgress
-                    {
-                        IsIndeterminate = false,
-                        OverallProgress = innerProgress / 36897216.0,
-                        StageTitle = Host?.RequestLocalizedString("/Plugins/PSMS/Stages/Downloading/VDM") ??
-                                     "Downloading PSMS-VDManager"
-                    });
-                }); // The runtime will do the rest for us
-
-            // Close the file to unlock it
-            fsInstallerFile.Close();
-
-            var sourceZip =
-                Path.GetFullPath(Path.Combine((await GetTempDirectory()).Path, "PSMSVirtualDeviceManager.zip"));
             var outputDirectory = (await ApplicationData.Current.LocalFolder.CreateFolderAsync(
                 "Vendor", CreationCollisionOption.OpenIfExists)).Path;
 
@@ -291,9 +218,6 @@ internal class EyeDrivers : IDependency
     private const int VENDOR_ID = 0x1415;
     private const int PRODUCT_ID = 0x2000;
 
-    private const string DownloadUrl =
-        "https://github.com/Timocop/PSMoveServiceEx-Virtual-Device-Manager/releases/download/v8.2/PSMSVirtualDeviceManager.zip";
-
     private string TemporaryFolderName { get; } = Guid.NewGuid().ToString().ToUpper();
 
     private async Task<StorageFolder> GetTempDirectory()
@@ -309,41 +233,9 @@ internal class EyeDrivers : IDependency
 
         try
         {
-            using var client = new RestClient();
-            progress.Report(new InstallationProgress
-            {
-                IsIndeterminate = true,
-                StageTitle = Host?.RequestLocalizedString("/Plugins/PSMS/Stages/Downloading/Eye") ??
-                             "Downloading PSEye Drivers"
-            });
+            var sourceZip = Path.Join(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.FullName,
+                "Assets", "Resources", "Dependencies", "PSMSVirtualDeviceManager.zip");
 
-            // Create a stream reader using the received Installer Uri
-            await using var stream =
-                await client.ExecuteDownloadStreamAsync(DownloadUrl, new RestRequest());
-
-            // Replace or create our installer file
-            var installerFile = await (await GetTempDirectory()).CreateFileAsync(
-                "PSMSVirtualDeviceManager.zip", CreationCollisionOption.ReplaceExisting);
-
-            // Create an output stream and push all the available data to it
-            await using var fsInstallerFile = await installerFile.OpenStreamForWriteAsync();
-            await stream.CopyToWithProgressAsync(fsInstallerFile, cancellationToken,
-                innerProgress =>
-                {
-                    progress.Report(new InstallationProgress
-                    {
-                        IsIndeterminate = false,
-                        OverallProgress = innerProgress / 36897216.0,
-                        StageTitle = Host?.RequestLocalizedString("/Plugins/PSMS/Stages/Downloading/Eye") ??
-                                     "Downloading PSEye Drivers"
-                    });
-                }); // The runtime will do the rest for us
-
-            // Close the file to unlock it
-            fsInstallerFile.Close();
-
-            var sourceZip =
-                Path.GetFullPath(Path.Combine((await GetTempDirectory()).Path, "PSMSVirtualDeviceManager.zip"));
             var outputDirectory = (await GetTempDirectory()).Path;
 
             if (File.Exists(sourceZip))
@@ -438,49 +330,6 @@ internal class EyeDrivers : IDependency
     public bool IsMandatory => false;
     public bool IsInstalled => false;
     public string InstallerEula => string.Empty;
-}
-
-public static class RestExtensions
-{
-    public static Task<byte[]> ExecuteDownloadDataAsync(this RestClient client, string baseUrl, RestRequest request)
-    {
-        client.Options.BaseUrl = new Uri(baseUrl);
-        return client.DownloadDataAsync(request);
-    }
-
-    public static Task<Stream> ExecuteDownloadStreamAsync(this RestClient client, string baseUrl, RestRequest request)
-    {
-        client.Options.BaseUrl = new Uri(baseUrl);
-        return client.DownloadStreamAsync(request);
-    }
-}
-
-public static class StreamExtensions
-{
-    public static async Task CopyToWithProgressAsync(this Stream source,
-        Stream destination, CancellationToken cancellationToken,
-        Action<long> progress = null, int bufferSize = 10240)
-    {
-        var buffer = new byte[bufferSize];
-        var total = 0L;
-        int amtRead;
-
-        do
-        {
-            amtRead = 0;
-            while (amtRead < bufferSize)
-            {
-                var numBytes = await source.ReadAsync(
-                    buffer, amtRead, bufferSize - amtRead, cancellationToken);
-                if (numBytes == 0) break;
-                amtRead += numBytes;
-            }
-
-            total += amtRead;
-            await destination.WriteAsync(buffer, 0, amtRead, cancellationToken);
-            progress?.Invoke(total);
-        } while (amtRead == bufferSize);
-    }
 }
 
 [ComImport]

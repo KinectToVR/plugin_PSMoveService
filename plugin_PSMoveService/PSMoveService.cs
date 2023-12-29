@@ -44,7 +44,7 @@ public class PsMoveService : ITrackingDevice
     public DirectoryInfo ConfigFolder => new(Path.Join(Environment.GetFolderPath(
         Environment.SpecialFolder.ApplicationData), "PSMoveService"));
 
-    public bool IsPositionFilterBlockingEnabled => false;
+    public bool IsPositionFilterBlockingEnabled => true;
     public bool IsPhysicsOverrideEnabled => true;
     public bool IsSelfUpdateEnabled => false;
     public bool IsFlipSupported => false;

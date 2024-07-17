@@ -32,7 +32,9 @@ internal class SetupData : ICoreSetupData
 
 internal class CoreInstaller : IDependencyInstaller
 {
-    public IDependencyInstaller.ILocalizationHost Host { get; set; }
+	public IDependencyInstaller.ILocalizationHost Host { get; set; }
+
+	public List<IFix> ListFixes() => new();
 
     public List<IDependency> ListDependencies()
     {

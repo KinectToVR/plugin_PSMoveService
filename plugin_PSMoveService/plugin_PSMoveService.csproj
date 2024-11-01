@@ -9,11 +9,12 @@
     <PublishTrimmed>true</PublishTrimmed>
     <Platforms>x64</Platforms>
     <UseWinUI>true</UseWinUI>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../vendor/PSMS/PSMoveServiceExCAPI/PSMoveServiceExCAPI.vbproj" />
-    <PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.25" />
+    <PackageReference Include="Amethyst.Plugins.Contract" Version="0.3.32-alpha" />
     <PackageReference Include="RestSharp" Version="108.0.3" />
     <PackageReference Include="System.ComponentModel.Composition" Version="8.0.0" />
     <PackageReference Include="System.ComponentModel.Composition.Registration" Version="8.0.0" />

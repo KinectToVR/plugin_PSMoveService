@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.Drawing;
@@ -107,7 +108,7 @@ public class PsMoveService : ITrackingDevice
         LedToggleSwitch = new ToggleSwitch
         {
             OnContent = "", OffContent = "",
-            IsOn = Host.PluginSettings.GetSetting("LedDim", false),
+            IsOn = Host!.PluginSettings.GetSetting("LedDim", false),
             Margin = new Thickness { Left = 5, Top = 3, Right = 3, Bottom = 3 },
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -260,6 +261,21 @@ public class PsMoveService : ITrackingDevice
                 jointEnumerator.Current.TrackingState = controller.IsControllerStable()
                     ? TrackedJointState.StateTracked // Tracking is all fine!
                     : TrackedJointState.StateInferred; // Kinda unstable...?
+
+                // Update input actions (using extensions defined below)
+                // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+                switch (controller.m_Info.m_ControllerType)
+                {
+                    case Constants.PSMControllerType.PSMController_Move:
+                        controller.m_Info.m_PSMoveState.UpdateActions(Host);
+                        break;
+                    case Constants.PSMControllerType.PSMController_Navi:
+                        controller.m_Info.m_PSNaviState.UpdateActions(Host);
+                        break;
+                    case Constants.PSMControllerType.PSMController_DualShock4:
+                        controller.m_Info.m_PSDualShock4State.UpdateActions(Host);
+                        break;
+                }
             });
         }
         catch (Exception e)
@@ -380,7 +396,20 @@ public class PsMoveService : ITrackingDevice
                                    ? controller.m_Info
                                        .m_ControllerId // Is the controller is virtual, also append its ID
                                    : ""), // If this controller is valid, its serial should be the bluetooth-mac address
-                        Role = TrackedJointType.JointManual
+                        Role = TrackedJointType.JointManual,
+                        SupportedInputActions = controller.m_Info.m_ControllerType switch
+                        {
+                            Constants.PSMControllerType.PSMController_Move =>
+                                controller.m_Info.m_PSMoveState.GetActions(),
+                            Constants.PSMControllerType.PSMController_Navi =>
+                                controller.m_Info.m_PSNaviState.GetActions(),
+                            Constants.PSMControllerType.PSMController_DualShock4 =>
+                                controller.m_Info.m_PSDualShock4State.GetActions(),
+
+                            Constants.PSMControllerType.PSMController_Virtual => [],
+                            Constants.PSMControllerType.PSMController_None => [],
+                            _ => []
+                        }
                     });
                 }
             }
@@ -465,5 +494,182 @@ public static class DataExtensions
     public static void AddRange<T>(this ObservableCollection<T> collection, IEnumerable<T> items)
     {
         items.ToList().ForEach(collection.Add);
+    }
+
+    public static void UpdateActions(this Controllers.Info.PSMoveState state, IAmethystHost host)
+    {
+        try
+        {
+            state.GetButtonStates()
+                .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<bool>
+                {
+                    Name = x.Key,
+                    Guid = x.Key
+                }, Data: x.Value)).Concat(state.GetAnalogStates()
+                    .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<double>
+                    {
+                        Name = x.Key,
+                        Guid = x.Key
+                    }, Data: x.Value))).ToList().ForEach(x => host.ReceiveKeyInput(x.Action, x.Data));
+        }
+        catch (Exception e)
+        {
+            host?.Log(e);
+        }
+    }
+
+    public static void UpdateActions(this Controllers.Info.PSDualShock4State state, IAmethystHost host)
+    {
+        try
+        {
+            state.GetButtonStates()
+                .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<bool>
+                {
+                    Name = x.Key,
+                    Guid = x.Key
+                }, Data: x.Value)).Concat(state.GetAnalogStates()
+                    .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<double>
+                    {
+                        Name = x.Key,
+                        Guid = x.Key
+                    }, Data: x.Value))).ToList().ForEach(x => host.ReceiveKeyInput(x.Action, x.Data));
+        }
+        catch (Exception e)
+        {
+            host?.Log(e);
+        }
+    }
+
+    public static void UpdateActions(this Controllers.Info.PSNaviState state, IAmethystHost host)
+    {
+        try
+        {
+            state.GetButtonStates()
+                .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<bool>
+                {
+                    Name = x.Key,
+                    Guid = x.Key
+                }, Data: x.Value)).ToList().ForEach(x => host.ReceiveKeyInput(x.Action, x.Data));
+        }
+        catch (Exception e)
+        {
+            host?.Log(e);
+        }
+    }
+
+    public static SortedSet<IKeyInputAction> GetActions(this Controllers.Info.PSMoveState state)
+    {
+        return new SortedSet<IKeyInputAction>(state.GetButtonStates()
+            .Select(IKeyInputAction (x) => new KeyInputAction<bool>
+            {
+                Name = x.Key, Guid = x.Key
+            }).Concat(state.GetAnalogStates().Select(IKeyInputAction (x) => new KeyInputAction<double>
+            {
+                Name = x.Key,
+                Guid = x.Key
+            })).ToList());
+    }
+
+    public static SortedSet<IKeyInputAction> GetActions(this Controllers.Info.PSDualShock4State state)
+    {
+        return new SortedSet<IKeyInputAction>(state.GetButtonStates()
+            .Select(IKeyInputAction (x) => new KeyInputAction<bool>
+            {
+                Name = x.Key,
+                Guid = x.Key
+            }).Concat(state.GetAnalogStates().Select(IKeyInputAction (x) => new KeyInputAction<double>
+            {
+                Name = x.Key,
+                Guid = x.Key
+            })).ToList());
+    }
+
+    public static SortedSet<IKeyInputAction> GetActions(this Controllers.Info.PSNaviState state)
+    {
+        return new SortedSet<IKeyInputAction>(state.GetButtonStates()
+            .Select(IKeyInputAction (x) => new KeyInputAction<bool>
+            {
+                Name = x.Key,
+                Guid = x.Key
+            }).ToList());
+    }
+
+    public static Dictionary<string, bool> GetButtonStates(this Controllers.Info.PSMoveState state)
+    {
+        return new Dictionary<string, bool>
+        {
+            { "Triangle", state?.m_TriangleButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Circle", state?.m_CircleButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Cross", state?.m_CrossButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Square", state?.m_SquareButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Select", state?.m_SelectButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Start", state?.m_StartButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "PS", state?.m_PSButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Move", state?.m_MoveButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Trigger", state?.m_TriggerButton == Constants.PSMButtonState.PSMButtonState_PRESSED }
+        };
+    }
+
+    public static Dictionary<string, double> GetAnalogStates(this Controllers.Info.PSMoveState state)
+    {
+        return new Dictionary<string, double>
+        {
+            { "Trigger (Linear)", (state?.m_TriggerValue ?? 0.0) / 255.0 }
+        };
+    }
+
+    public static Dictionary<string, bool> GetButtonStates(this Controllers.Info.PSDualShock4State state)
+    {
+        return new Dictionary<string, bool>
+        {
+            { "D-Pad Up", state?.m_DPadUpButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "D-Pad Down", state?.m_DPadDownButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "D-Pad Left", state?.m_DPadLeftButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "D-Pad Right", state?.m_DPadRightButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Square", state?.m_SquareButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Cross", state?.m_CrossButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Circle", state?.m_CircleButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Triangle", state?.m_TriangleButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "L1", state?.m_L1Button == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "R1", state?.m_R1Button == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "L2", state?.m_L2Button == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "R2", state?.m_R2Button == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "L3", state?.m_L3Button == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "R3", state?.m_R3Button == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Share", state?.m_ShareButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Options", state?.m_OptionsButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "PS", state?.m_PSButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Trackpad", state?.m_TrackPadButton == Constants.PSMButtonState.PSMButtonState_PRESSED }
+        };
+    }
+
+    public static Dictionary<string, double> GetAnalogStates(this Controllers.Info.PSDualShock4State state)
+    {
+        return new Dictionary<string, double>
+        {
+            { "Left X", Math.Clamp(state?.m_LeftAnalogX ?? 0.0, 0.0, 1.0) },
+            { "Left Y", Math.Clamp(state?.m_LeftAnalogY ?? 0.0, 0.0, 1.0) },
+            { "Right X", Math.Clamp(state?.m_RightAnalogX ?? 0.0, 0.0, 1.0) },
+            { "Right Y", Math.Clamp(state?.m_RightAnalogY ?? 0.0, 0.0, 1.0) },
+            { "Left Trigger", Math.Clamp(state?.m_LeftTriggerValue ?? 0.0, 0.0, 1.0) },
+            { "Right Trigger", Math.Clamp(state?.m_RightTriggerValue ?? 0.0, 0.0, 1.0) }
+        };
+    }
+
+    public static Dictionary<string, bool> GetButtonStates(this Controllers.Info.PSNaviState state)
+    {
+        return new Dictionary<string, bool>
+        {
+            { "D-Pad Up", state?.m_DPadUpButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "D-Pad Down", state?.m_DPadDownButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "D-Pad Left", state?.m_DPadLeftButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "D-Pad Right", state?.m_DPadRightButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Cross", state?.m_CrossButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "Circle", state?.m_CircleButton == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "L1", state?.m_L1Button == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "L2", state?.m_L2Button == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "L3", state?.m_L3Button == Constants.PSMButtonState.PSMButtonState_PRESSED },
+            { "PS", state?.m_PSButton == Constants.PSMButtonState.PSMButtonState_PRESSED }
+        };
     }
 }

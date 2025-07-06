@@ -23,11 +23,11 @@ jobs:
         uses: microsoft/setup-msbuild@v1.1
 
       - name: Restore and build (publish)
-        run: msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win10-x64 /t:Publish /p:PublishProfile=plugin_PSMoveService\Properties\PublishProfiles\FolderProfile.pubxml
+        run: msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win-x64 /t:Publish /p:PublishProfile=plugin_PSMoveService\Properties\PublishProfiles\FolderProfile.pubxml
 
       - name: Pack published files
         run: |
-          cd plugin_PSMoveService/bin/Release/net7.0/win10-x64/publish
+          cd plugin_PSMoveService/bin/Release/net8.0/win-x64/publish
           7z a plugin_PSMoveService.zip *
         
       - name: Upload plugin artifact
@@ -38,5 +38,5 @@ jobs:
           prerelease: true
           title: "plugin_PSMoveService Build Artifact"
           files: |
-            ./plugin_PSMoveService/bin/Release/net7.0/win10-x64/publish/plugin_PSMoveService.zip
+            ./plugin_PSMoveService/bin/Release/net8.0/win-x64/publish/plugin_PSMoveService.zip
             ./external/manifest.json

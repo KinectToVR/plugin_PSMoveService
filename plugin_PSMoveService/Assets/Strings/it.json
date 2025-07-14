@@ -27,7 +27,7 @@
     },
     {
       "id": "/Plugins/Kinect360/Dependencies/Eye/Name",
-      "translation": "PSEye Drivers"
+      "translation": "Driver PSEye"
     },
     {
       "id": "/Plugins/Kinect360/Dependencies/PSMS/Name",
@@ -39,51 +39,51 @@
     },
     {
       "id": "/Plugins/PSMS/Stages/Downloading/Service",
-      "translation": "Downloading PSMove Service"
+      "translation": "Scaricando PSMove Service"
     },
     {
       "id": "/Plugins/PSMS/Stages/Exceptions/Service/Extraction",
-      "translation": "PSMove Service extraction failed! Exception: {0}"
+      "translation": "Estrazione PSMove Service fallita! Errore: {0}"
     },
     {
       "id": "/Plugins/PSMS/Stages/Exceptions/Service/Installation",
-      "translation": "PSMove Service installation failed! Exception: {0}"
+      "translation": "Installazione PSMove Service fallita!! Errore: {0}"
     },
     {
       "id": "/Plugins/PSMS/Stages/Downloading/VDM",
-      "translation": "Downloading PSMS-VDManager"
+      "translation": "Scaricando PSMS-VDManager"
     },
     {
       "id": "/Plugins/PSMS/Stages/Exceptions/VDM/Extraction",
-      "translation": "PSMS-VDM extraction failed! Exception: {0}"
+      "translation": "Estrazione PSMS-VDM fallita! Errore: {0}"
     },
     {
       "id": "/Plugins/PSMS/Stages/Exceptions/VDM/Installation",
-      "translation": "PSMS-VDM installation failed! Exception: {0}"
+      "translation": "Installazione PSMS-VDM fallita! Errore: {0}"
     },
     {
       "id": "/Plugins/PSMS/Stages/Downloading/Eye",
-      "translation": "Downloading PSEye Drivers"
+      "translation": "Scaricando Driver PSEye"
     },
     {
       "id": "/Plugins/PSMS/Stages/Exceptions/Eye/Extraction",
-      "translation": "Archive extraction failed! Exception: {0}"
+      "translation": "Estrazione archivio fallita! Errore: {0}"
     },
     {
       "id": "/Plugins/PSMS/Stages/Installing/Eye",
-      "translation": "Setting up PSEye Drivers"
+      "translation": "Configurando Driver PSEye"
     },
     {
       "id": "/Plugins/PSMS/Stages/Installation/Eye/Success",
-      "translation": "PSEye Drivers installed successfully!"
+      "translation": "Driver PSEye installati con successo!"
     },
     {
       "id": "/Plugins/PSMS/Stages/Installation/Eye/Fail",
-      "translation": "PSEye Drivers installation failed! Exit code: {0}"
+      "translation": "Installazione Driver PSEye fallita! Codice uscita: {0}"
     },
     {
       "id": "/Plugins/PSMS/Stages/Exceptions/Service/Installation",
-      "translation": "PSEye Drivers installation failed! Exception: {0}"
+      "translation": "Installazione Driver PSEye fallita! Errore: {0}"
     }
   ]
 }

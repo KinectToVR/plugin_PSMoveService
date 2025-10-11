@@ -1,7 +1,17 @@
 {
-  "version": "1.0.0.1",
-  "display_name": "PSMove Service",
-  "download_":  "plugin_PSMoveService.zip",
-  "changelog": "What the f'ck is a kilometer?!",
-  "guid": "K2VRTEAM-AME2-APII-DVCE-DVCEPSMOVEEX"
+  "name": "PSMove Service",
+  "description": "Ame2 plugin for the PSMove Service.",
+  "guid": "K2VRTEAM-AME2-APII-DVCE-DVCEPSMOVEEX",
+  "type": "device",
+  "author": "K2VR Team",
+  "artifacts": [
+    {
+      "version": "2.0.0.0",
+      "contract": "2.0.0.0",
+      "platform": "windows",
+      "name": "PSMove Service",
+      "download": "plugin_PSMoveService.zip",
+      "changelog": "Initial release of the PSMove Service plugin."
+    }
+  ]
 }

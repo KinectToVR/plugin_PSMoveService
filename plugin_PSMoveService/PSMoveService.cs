@@ -1,23 +1,19 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License. See LICENSE in the project root for license information.
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
-using Amethyst.Plugins.Contract;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using Amethyst.Contract;
+using Windows.Storage;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Layout;
 using static PSMoveServiceExCAPI.PSMoveServiceExCAPI;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace plugin_PSMoveService;
 
@@ -25,7 +21,7 @@ namespace plugin_PSMoveService;
 [ExportMetadata("Name", "PSMove Service")]
 [ExportMetadata("Guid", "K2VRTEAM-AME2-APII-DVCE-DVCEPSMOVEEX")]
 [ExportMetadata("Publisher", "K2VR Team")]
-[ExportMetadata("Version", "1.0.0.1")]
+[ExportMetadata("Version", "2.0.0.0")]
 [ExportMetadata("Website", "https://github.com/KinectToVR/plugin_PSMoveService")]
 [ExportMetadata("DependencyLink", "https://github.com/Timocop/PSMoveServiceEx/releases")]
 [ExportMetadata("DependencyInstaller", typeof(CoreInstaller))]
@@ -36,7 +32,7 @@ public class PsMoveService : ITrackingDevice
     private Service Service { get; } = new("127.0.0.1");
 
     private bool PluginLoaded { get; set; }
-    private Page InterfaceRoot { get; set; }
+    private Control InterfaceRoot { get; set; }
     private ToggleSwitch LedToggleSwitch { get; set; }
     private TextBlock LedTextBlock { get; set; }
     private TextBlock LedHeaderTextBlock { get; set; }
@@ -57,44 +53,41 @@ public class PsMoveService : ITrackingDevice
     public bool IsSkeletonTracked { get; private set; }
     public int DeviceStatus { get; private set; } = 3;
 
-    public ObservableCollection<TrackedJoint> TrackedJoints { get; } = new()
-    {
-        new TrackedJoint { Name = "INVALID", Role = TrackedJointType.JointManual }
-    };
+    public ObservableCollection<TrackedJoint> TrackedJoints { get; } = new() { new TrackedJoint { Name = "INVALID", Role = TrackedJointType.JointManual } };
 
-    public string DeviceStatusString => PluginLoaded
-        ? DeviceStatus switch
+    public string DeviceStatusString => PluginLoaded ?
+        DeviceStatus switch
         {
             0 => Host.RequestLocalizedString("/Plugins/PSMS/Statuses/Success"),
             1 => Host.RequestLocalizedString("/Plugins/PSMS/Statuses/NoJoints"),
             2 => Host.RequestLocalizedString("/Plugins/PSMS/Statuses/NotConnected"),
             3 => Host.RequestLocalizedString("/Plugins/PSMS/Statuses/NotRunning"),
             _ => $"Undefined: {DeviceStatus}\nE_UNDEFINED\nSomething weird has happened, though we can't tell what."
-        }
-        : $"Undefined: {DeviceStatus}\nE_UNDEFINED\nSomething weird has happened, though we can't tell what.";
+        } :
+        $"Undefined: {DeviceStatus}\nE_UNDEFINED\nSomething weird has happened, though we can't tell what.";
 
     public Uri ErrorDocsUri => new($"https://docs.k2vr.tech/{Host?.DocsLanguageCode ?? "en"}/psmove/troubleshooting/");
 
-    public void OnLoad()
+    public Task OnLoad()
     {
         try
         {
             // Prepare joint placeholders if this is the 1st time loading
             if (!PluginLoaded && ConfigFolder.Exists)
+            {
                 lock (Host.UpdateThreadLock)
                 {
                     TrackedJoints.Clear(); // Clear the list to make some space
 
                     // Add all valid PSMoves present in the configuration directory
                     TrackedJoints.AddRange(ConfigFolder.EnumerateFiles("??_??_??_??_??_??.json")
-                        .Select(x => new TrackedJoint
-                            { Name = Path.GetFileNameWithoutExtension(x.Name), Role = TrackedJointType.JointManual }));
+                        .Select(x => new TrackedJoint { Name = Path.GetFileNameWithoutExtension(x.Name), Role = TrackedJointType.JointManual }));
 
                     // Add all valid Virtual-s present in the configuration directory
                     TrackedJoints.AddRange(ConfigFolder.EnumerateFiles("VirtualController_*.json")
-                        .Select(x => new TrackedJoint
-                            { Name = Path.GetFileNameWithoutExtension(x.Name), Role = TrackedJointType.JointManual }));
+                        .Select(x => new TrackedJoint { Name = Path.GetFileNameWithoutExtension(x.Name), Role = TrackedJointType.JointManual }));
                 }
+            }
         }
         catch (Exception e)
         {
@@ -107,54 +100,46 @@ public class PsMoveService : ITrackingDevice
         // Prepare the settings interface
         LedToggleSwitch = new ToggleSwitch
         {
-            OnContent = "", OffContent = "",
-            IsOn = Host!.PluginSettings.GetSetting("LedDim", false),
-            Margin = new Thickness { Left = 5, Top = 3, Right = 3, Bottom = 3 },
+            OnContent = "",
+            OffContent = "",
+            IsChecked = Host!.PluginSettings.GetSetting("LedDim", false),
+            Margin = new Thickness(5, 3, 3, 3),
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        LedToggleSwitch.Toggled += (sender, _) =>
+        LedToggleSwitch.IsCheckedChanged += (sender, _) =>
         {
-            DimControllers((sender as ToggleSwitch)?.IsOn ?? false); // Try to dim the controller
-            Host.PluginSettings.SetSetting("LedDim", (sender as ToggleSwitch)?.IsOn ?? false);
-            Host.PlayAppSound((sender as ToggleSwitch)?.IsOn ?? false ? SoundType.ToggleOn : SoundType.ToggleOff);
+            DimControllers((sender as ToggleSwitch)?.IsChecked ?? false); // Try to dim the controller
+            Host.PluginSettings.SetSetting("LedDim", (sender as ToggleSwitch)?.IsChecked ?? false);
+            Host.PlayAppSound((sender as ToggleSwitch)?.IsChecked ?? false ? SoundType.ToggleOn : SoundType.ToggleOff);
         };
 
         LedHeaderTextBlock = new TextBlock
         {
             Text = Host.RequestLocalizedString("/Plugins/PSMS/Settings/Contents/Dim"),
-            Margin = new Thickness { Left = 3, Top = 5, Right = 5, Bottom = 3 },
-            VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.WrapWholeWords
+            Margin = new Thickness(3, 5, 5, 3),
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
         };
 
         LedTextBlock = new TextBlock
         {
             Text = Host.RequestLocalizedString("/Plugins/PSMS/Settings/Labels/Dim"),
-            Margin = new Thickness { Left = 3, Top = 3, Right = 3, Bottom = 8 },
+            Margin = new Thickness(3, 3, 3, 8),
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        InterfaceRoot = new Page
+        InterfaceRoot = new StackPanel
         {
-            Content = new StackPanel
-            {
-                Orientation = Orientation.Vertical,
-                Children =
-                {
-                    LedHeaderTextBlock,
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Children = { LedTextBlock, LedToggleSwitch }
-                    }
-                }
-            }
+            Orientation = Orientation.Vertical,
+            Children = { LedHeaderTextBlock, new StackPanel { Orientation = Orientation.Horizontal, Children = { LedTextBlock, LedToggleSwitch } } }
         };
 
         PluginLoaded = true;
+        return Task.CompletedTask;
     }
 
-    public void Initialize()
+    public Task Initialize()
     {
         // Try connecting to the service
         try
@@ -170,13 +155,16 @@ public class PsMoveService : ITrackingDevice
             RefreshControllerList();
 
             // Re-compute the status
-            DeviceStatus = IsInitialized
-                ? Service.IsConnected()
-                    ? TrackedJoints.First().Name != "INVALID"
-                        ? 0 // Everything's fine!
-                        : 1 // Connected, no joints
-                    : 2 // Not even connected
-                : 3; // Not initialized (yet?)
+            DeviceStatus = IsInitialized ?
+                Service.IsConnected() ?
+                    TrackedJoints.First().Name != "INVALID" ?
+                        0 // Everything's fine!
+                        :
+                        1 // Connected, no joints
+                    :
+                    2 // Not even connected
+                :
+                3; // Not initialized (yet?)
 
             // Refresh inside amethyst
             Host?.RefreshStatusInterface();
@@ -185,9 +173,11 @@ public class PsMoveService : ITrackingDevice
         {
             Host?.Log($"Couldn't connect to the PSM Service! {e.Message}");
         }
+
+        return Task.CompletedTask;
     }
 
-    public void Shutdown()
+    public Task Shutdown()
     {
         // Try disconnection from the service
         try
@@ -202,13 +192,16 @@ public class PsMoveService : ITrackingDevice
             }
 
             // Re-compute the status
-            DeviceStatus = IsInitialized
-                ? Service.IsConnected()
-                    ? TrackedJoints.First().Name != "INVALID"
-                        ? 0 // Everything's fine!
-                        : 1 // Connected, no joints
-                    : 2 // Not even connected
-                : 3; // Not initialized (yet?)
+            DeviceStatus = IsInitialized ?
+                Service.IsConnected() ?
+                    TrackedJoints.First().Name != "INVALID" ?
+                        0 // Everything's fine!
+                        :
+                        1 // Connected, no joints
+                    :
+                    2 // Not even connected
+                :
+                3; // Not initialized (yet?)
 
             // Refresh inside amethyst
             Host?.RefreshStatusInterface();
@@ -217,6 +210,8 @@ public class PsMoveService : ITrackingDevice
         {
             Host?.Log($"Couldn't disconnect from the PSM Service! {e.Message}");
         }
+
+        return Task.CompletedTask;
     }
 
     public void Update()
@@ -258,9 +253,10 @@ public class PsMoveService : ITrackingDevice
                 //jointEnumerator.Current.AngularAcceleration = controller.PoseAngularAcceleration();
 
                 // Parse/copy the tracking state
-                jointEnumerator.Current.TrackingState = controller.IsControllerStable()
-                    ? TrackedJointState.StateTracked // Tracking is all fine!
-                    : TrackedJointState.StateInferred; // Kinda unstable...?
+                jointEnumerator.Current.TrackingState = controller.IsControllerStable() ?
+                    TrackedJointState.StateTracked // Tracking is all fine!
+                    :
+                    TrackedJointState.StateInferred; // Kinda unstable...?
 
                 // Update input actions (using extensions defined below)
                 // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
@@ -284,13 +280,16 @@ public class PsMoveService : ITrackingDevice
             Host?.Log("Checking the service status again...");
 
             // Re-compute the status
-            DeviceStatus = IsInitialized
-                ? Service.IsConnected()
-                    ? TrackedJoints.First().Name != "INVALID"
-                        ? 0 // Everything's fine!
-                        : 1 // Connected, no joints
-                    : 2 // Not even connected
-                : 3; // Not initialized (yet?)
+            DeviceStatus = IsInitialized ?
+                Service.IsConnected() ?
+                    TrackedJoints.First().Name != "INVALID" ?
+                        0 // Everything's fine!
+                        :
+                        1 // Connected, no joints
+                    :
+                    2 // Not even connected
+                :
+                3; // Not initialized (yet?)
 
             // Request a quick refresh of the status
             Host?.RefreshStatusInterface();
@@ -336,7 +335,7 @@ public class PsMoveService : ITrackingDevice
             {
                 // Try setting controller rumble
                 PsControllers.ForEach(x => x.SetControllerLEDOverrideColor(
-                    enabled ? Color.FromArgb(1, 1, 1) : Color.FromArgb(0, 0, 0)));
+                    enabled ? System.Drawing.Color.FromArgb(1, 1, 1) : System.Drawing.Color.FromArgb(0, 0, 0)));
             }
             catch (Exception e)
             {
@@ -364,10 +363,7 @@ public class PsMoveService : ITrackingDevice
                 if (!PsControllers.Any())
                 {
                     Host?.Log("Didn't find any valid controllers within the PSM Service!");
-                    TrackedJoints.Add(new TrackedJoint
-                    {
-                        Name = "INVALID", Role = TrackedJointType.JointManual
-                    });
+                    TrackedJoints.Add(new TrackedJoint { Name = "INVALID", Role = TrackedJointType.JointManual });
                     goto refresh; // Refresh everything after the change
                 }
 
@@ -392,10 +388,11 @@ public class PsMoveService : ITrackingDevice
                     TrackedJoints.Add(new TrackedJoint
                     {
                         Name = $"{controller.m_Info.m_ControllerSerial}" +
-                               (controller.m_Info.m_ControllerType is Constants.PSMControllerType.PSMController_Virtual
-                                   ? controller.m_Info
+                               (controller.m_Info.m_ControllerType is Constants.PSMControllerType.PSMController_Virtual ?
+                                   controller.m_Info
                                        .m_ControllerId // Is the controller is virtual, also append its ID
-                                   : ""), // If this controller is valid, its serial should be the bluetooth-mac address
+                                   :
+                                   ""), // If this controller is valid, its serial should be the bluetooth-mac address
                         Role = TrackedJointType.JointManual,
                         SupportedInputActions = controller.m_Info.m_ControllerType switch
                         {
@@ -432,63 +429,63 @@ public static class DataExtensions
 {
     public static Vector3 PoseVelocity(this Controllers controller)
     {
-        return controller.m_Info.IsPhysicsValid()
-            ? new Vector3(
+        return controller.m_Info.IsPhysicsValid() ?
+            new Vector3(
                 controller.m_Info.m_Physics.m_LinearVelocityCmPerSec.x / 100f,
                 controller.m_Info.m_Physics.m_LinearVelocityCmPerSec.y / 100f,
-                controller.m_Info.m_Physics.m_LinearVelocityCmPerSec.z / 100f)
-            : Vector3.Zero; // Nothing if invalid
+                controller.m_Info.m_Physics.m_LinearVelocityCmPerSec.z / 100f) :
+            Vector3.Zero; // Nothing if invalid
     }
 
     public static Vector3 PoseAcceleration(this Controllers controller)
     {
-        return controller.m_Info.IsPhysicsValid()
-            ? new Vector3(
+        return controller.m_Info.IsPhysicsValid() ?
+            new Vector3(
                 controller.m_Info.m_Physics.m_LinearAccelerationCmPerSecSqr.x / 100f,
                 controller.m_Info.m_Physics.m_LinearAccelerationCmPerSecSqr.y / 100f,
-                controller.m_Info.m_Physics.m_LinearAccelerationCmPerSecSqr.z / 100f)
-            : Vector3.Zero; // Nothing if invalid
+                controller.m_Info.m_Physics.m_LinearAccelerationCmPerSecSqr.z / 100f) :
+            Vector3.Zero; // Nothing if invalid
     }
 
     public static Vector3 PoseAngularVelocity(this Controllers controller)
     {
-        return controller.m_Info.IsPhysicsValid()
-            ? new Vector3(
+        return controller.m_Info.IsPhysicsValid() ?
+            new Vector3(
                 controller.m_Info.m_Physics.m_AngularVelocityRadPerSec.x / 100f,
                 controller.m_Info.m_Physics.m_AngularVelocityRadPerSec.y / 100f,
-                controller.m_Info.m_Physics.m_AngularVelocityRadPerSec.z / 100f)
-            : Vector3.Zero; // Nothing if invalid
+                controller.m_Info.m_Physics.m_AngularVelocityRadPerSec.z / 100f) :
+            Vector3.Zero; // Nothing if invalid
     }
 
     public static Vector3 PoseAngularAcceleration(this Controllers controller)
     {
-        return controller.m_Info.IsPhysicsValid()
-            ? new Vector3(
+        return controller.m_Info.IsPhysicsValid() ?
+            new Vector3(
                 controller.m_Info.m_Physics.m_AngularAccelerationRadPerSecSqr.x / 100f,
                 controller.m_Info.m_Physics.m_AngularAccelerationRadPerSecSqr.y / 100f,
-                controller.m_Info.m_Physics.m_AngularAccelerationRadPerSecSqr.z / 100f)
-            : Vector3.Zero; // Nothing if invalid
+                controller.m_Info.m_Physics.m_AngularAccelerationRadPerSecSqr.z / 100f) :
+            Vector3.Zero; // Nothing if invalid
     }
 
     public static Vector3 PoseVector(this Controllers controller)
     {
-        return controller.m_Info.IsPoseValid()
-            ? new Vector3(
+        return controller.m_Info.IsPoseValid() ?
+            new Vector3(
                 controller.m_Info.m_Pose.m_Position.x / 100f,
                 controller.m_Info.m_Pose.m_Position.y / 100f,
-                controller.m_Info.m_Pose.m_Position.z / 100f)
-            : Vector3.Zero; // Nothing if invalid
+                controller.m_Info.m_Pose.m_Position.z / 100f) :
+            Vector3.Zero; // Nothing if invalid
     }
 
     public static Quaternion OrientationQuaternion(this Controllers controller)
     {
-        return controller.m_Info.IsPoseValid()
-            ? new Quaternion(
+        return controller.m_Info.IsPoseValid() ?
+            new Quaternion(
                 controller.m_Info.m_Pose.m_Orientation.x,
                 controller.m_Info.m_Pose.m_Orientation.y,
                 controller.m_Info.m_Pose.m_Orientation.z,
-                controller.m_Info.m_Pose.m_Orientation.w)
-            : Quaternion.Identity; // Nothing if invalid
+                controller.m_Info.m_Pose.m_Orientation.w) :
+            Quaternion.Identity; // Nothing if invalid
     }
 
     public static void AddRange<T>(this ObservableCollection<T> collection, IEnumerable<T> items)
@@ -501,16 +498,11 @@ public static class DataExtensions
         try
         {
             state.GetButtonStates()
-                .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<bool>
-                {
-                    Name = x.Key,
-                    Guid = x.Key
-                }, Data: x.Value)).Concat(state.GetAnalogStates()
-                    .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<double>
-                    {
-                        Name = x.Key,
-                        Guid = x.Key
-                    }, Data: x.Value))).ToList().ForEach(x => host.ReceiveKeyInput(x.Action, x.Data));
+                .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<bool> { Name = x.Key, Guid = x.Key }, Data: x.Value)).Concat(
+                    state.GetAnalogStates()
+                        .Select((IKeyInputAction Action, object Data) (x) =>
+                            (Action: new KeyInputAction<double> { Name = x.Key, Guid = x.Key }, Data: x.Value))).ToList()
+                .ForEach(x => host.ReceiveKeyInput(x.Action, x.Data));
         }
         catch (Exception e)
         {
@@ -523,16 +515,11 @@ public static class DataExtensions
         try
         {
             state.GetButtonStates()
-                .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<bool>
-                {
-                    Name = x.Key,
-                    Guid = x.Key
-                }, Data: x.Value)).Concat(state.GetAnalogStates()
-                    .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<double>
-                    {
-                        Name = x.Key,
-                        Guid = x.Key
-                    }, Data: x.Value))).ToList().ForEach(x => host.ReceiveKeyInput(x.Action, x.Data));
+                .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<bool> { Name = x.Key, Guid = x.Key }, Data: x.Value)).Concat(
+                    state.GetAnalogStates()
+                        .Select((IKeyInputAction Action, object Data) (x) =>
+                            (Action: new KeyInputAction<double> { Name = x.Key, Guid = x.Key }, Data: x.Value))).ToList()
+                .ForEach(x => host.ReceiveKeyInput(x.Action, x.Data));
         }
         catch (Exception e)
         {
@@ -545,11 +532,8 @@ public static class DataExtensions
         try
         {
             state.GetButtonStates()
-                .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<bool>
-                {
-                    Name = x.Key,
-                    Guid = x.Key
-                }, Data: x.Value)).ToList().ForEach(x => host.ReceiveKeyInput(x.Action, x.Data));
+                .Select((IKeyInputAction Action, object Data) (x) => (Action: new KeyInputAction<bool> { Name = x.Key, Guid = x.Key }, Data: x.Value)).ToList()
+                .ForEach(x => host.ReceiveKeyInput(x.Action, x.Data));
         }
         catch (Exception e)
         {
@@ -560,38 +544,21 @@ public static class DataExtensions
     public static SortedSet<IKeyInputAction> GetActions(this Controllers.Info.PSMoveState state)
     {
         return new SortedSet<IKeyInputAction>(state.GetButtonStates()
-            .Select(IKeyInputAction (x) => new KeyInputAction<bool>
-            {
-                Name = x.Key, Guid = x.Key
-            }).Concat(state.GetAnalogStates().Select(IKeyInputAction (x) => new KeyInputAction<double>
-            {
-                Name = x.Key,
-                Guid = x.Key
-            })).ToList());
+            .Select(IKeyInputAction (x) => new KeyInputAction<bool> { Name = x.Key, Guid = x.Key })
+            .Concat(state.GetAnalogStates().Select(IKeyInputAction (x) => new KeyInputAction<double> { Name = x.Key, Guid = x.Key })).ToList());
     }
 
     public static SortedSet<IKeyInputAction> GetActions(this Controllers.Info.PSDualShock4State state)
     {
         return new SortedSet<IKeyInputAction>(state.GetButtonStates()
-            .Select(IKeyInputAction (x) => new KeyInputAction<bool>
-            {
-                Name = x.Key,
-                Guid = x.Key
-            }).Concat(state.GetAnalogStates().Select(IKeyInputAction (x) => new KeyInputAction<double>
-            {
-                Name = x.Key,
-                Guid = x.Key
-            })).ToList());
+            .Select(IKeyInputAction (x) => new KeyInputAction<bool> { Name = x.Key, Guid = x.Key })
+            .Concat(state.GetAnalogStates().Select(IKeyInputAction (x) => new KeyInputAction<double> { Name = x.Key, Guid = x.Key })).ToList());
     }
 
     public static SortedSet<IKeyInputAction> GetActions(this Controllers.Info.PSNaviState state)
     {
         return new SortedSet<IKeyInputAction>(state.GetButtonStates()
-            .Select(IKeyInputAction (x) => new KeyInputAction<bool>
-            {
-                Name = x.Key,
-                Guid = x.Key
-            }).ToList());
+            .Select(IKeyInputAction (x) => new KeyInputAction<bool> { Name = x.Key, Guid = x.Key }).ToList());
     }
 
     public static Dictionary<string, bool> GetButtonStates(this Controllers.Info.PSMoveState state)
@@ -612,10 +579,7 @@ public static class DataExtensions
 
     public static Dictionary<string, double> GetAnalogStates(this Controllers.Info.PSMoveState state)
     {
-        return new Dictionary<string, double>
-        {
-            { "Trigger (Linear)", (state?.m_TriggerValue ?? 0.0) / 255.0 }
-        };
+        return new Dictionary<string, double> { { "Trigger (Linear)", (state?.m_TriggerValue ?? 0.0) / 255.0 } };
     }
 
     public static Dictionary<string, bool> GetButtonStates(this Controllers.Info.PSDualShock4State state)
